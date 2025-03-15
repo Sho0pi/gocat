@@ -3,9 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/sho0pi/gocat/cmd/version"
 	"github.com/sho0pi/gocat/internal/filter"
 	"github.com/sho0pi/gocat/internal/logreader"
 	"github.com/sho0pi/gocat/internal/printer"
+	"github.com/sho0pi/gocat/internal/types"
 	"github.com/spf13/cobra"
 	"io"
 	"log"
@@ -20,18 +22,24 @@ const (
 
 type gocatOptions struct {
 	tags         []string
-	logLevels    []string
+	ignoreTags   []string
+	minLevel     types.LogLevel
 	processNames []string
 	showTime     bool
+	dump         bool
+	clear        bool
 }
 
 func newGocatCommand() *cobra.Command {
-	opts := &gocatOptions{}
+	opts := &gocatOptions{
+		minLevel: types.LevelVerbose,
+	}
 	cmd := &cobra.Command{
 		Use:   "gocat",
 		Short: "A beautiful logcat wrapper for Android",
 		Long: `Gocat is a CLI tool that wraps adb logcat with filtering and colorful output.
 It can parse logs either from an input file or directly from adb logcat.`,
+		Version: version.Version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -72,11 +80,11 @@ It can parse logs either from an input file or directly from adb logcat.`,
 			logReader := logreader.NewLogReader(reader, logCh, metaCh, errCh)
 			go logReader.Start(ctx)
 
-			logFilter := filter.NewLogFilter(logCh, filteredCh, opts.tags, opts.logLevels, opts.processNames)
+			logFilter := filter.NewLogFilter(logCh, filteredCh, opts.tags, opts.minLevel, opts.processNames)
 			go logFilter.Start(ctx)
 
 			// Create and start the Printer
-			logPrinter := printer.NewPrinter(filteredCh, metaCh, errCh, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			logPrinter := printer.NewPrinter(filteredCh, metaCh, errCh, cmd.OutOrStdout(), cmd.ErrOrStderr(), opts.showTime)
 			if err := logPrinter.Start(ctx); err != nil {
 				return fmt.Errorf("error from printer: %w", err)
 			}
@@ -84,6 +92,16 @@ It can parse logs either from an input file or directly from adb logcat.`,
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolP("version", "v", false, "Print version information and quit")
+	cmd.SetVersionTemplate("GoCat version {{.Version}}\n")
+
+	cmd.Flags().VarP(&opts.minLevel, "min-level", "l", "Minimum level to be displayed")
+	cmd.Flags().BoolVar(&opts.showTime, "show-time", false, "Show times")
+	cmd.Flags().BoolVarP(&opts.dump, "dump", "d", false, "Dump the log and then exit (don't block).")
+	cmd.Flags().BoolVarP(&opts.clear, "clear", "c", false, "Clear the entire log before running")
+	cmd.Flags().StringSliceVarP(&opts.tags, "tags", "t", []string{}, "Filter output by specified tag(s)")
+	cmd.Flags().StringSliceVarP(&opts.ignoreTags, "ignore-tags", "i", []string{}, "Filter output by ignoring specified tag(s)")
 
 	return cmd
 }
