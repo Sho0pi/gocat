@@ -12,12 +12,13 @@ import (
 
 // Printer is responsible for displaying log entries with color formatting
 type Printer struct {
-	logCh  <-chan *logreader.LogEntry
-	metaCh <-chan string
-	errCh  <-chan error
-	out    io.Writer
-	errOut io.Writer
-	mu     sync.Mutex // Protects concurrent writes to output
+	logCh    <-chan *logreader.LogEntry
+	metaCh   <-chan string
+	errCh    <-chan error
+	out      io.Writer
+	errOut   io.Writer
+	showTime bool
+	mu       sync.Mutex // Protects concurrent writes to output
 }
 
 // NewPrinter creates a new Printer with default settings
@@ -27,13 +28,15 @@ func NewPrinter(
 	errCh <-chan error,
 	out io.Writer,
 	errOut io.Writer,
+	showTime bool,
 ) *Printer {
 	return &Printer{
-		logCh:  logCh,
-		metaCh: metaCh,
-		errCh:  errCh,
-		out:    out,
-		errOut: errOut,
+		logCh:    logCh,
+		metaCh:   metaCh,
+		errCh:    errCh,
+		out:      out,
+		showTime: showTime,
+		errOut:   errOut,
 	}
 }
 
@@ -69,13 +72,11 @@ func (p *Printer) printLogEntry(entry *logreader.LogEntry) {
 
 	if entry.IsStackLine {
 		// Stack trace lines are indented and use the same color as their parent entry
-		c := entry.LogLevel.Color()
-		msg := c.Sprint(entry.Message)
-		fmt.Fprintln(p.out, msg)
-		//c.Fprintln(p.out, entry.Message)
+		fmt.Fprintln(p.out, entry.LogLevel.Sprint(entry.Message))
 		return
 	}
 
+	// Print the log level with its specific color
 	fmt.Fprint(p.out, entry.LogLevel.String())
 
 	// Format: TIME PID-TID/TAG LEVEL: MESSAGE
@@ -88,12 +89,8 @@ func (p *Printer) printLogEntry(entry *logreader.LogEntry) {
 	tagColor := color.New(color.FgHiBlue)
 	tagColor.Fprintf(p.out, "%s ", entry.Tag)
 
-	// Print the log level with its specific color
-	//logLevelColor.Fprintf(p.out, "%s: ", entry.LogLevel)
-
 	// Finally print the message with the same color as the log level
 	fmt.Fprintln(p.out, entry.LogLevel.Sprint(entry.Message))
-	//logLevelColor.Fprintln(p.out, entry.Message)
 }
 
 // printMetadata prints metadata lines with a special format

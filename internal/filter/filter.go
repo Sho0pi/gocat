@@ -3,6 +3,7 @@ package filter
 import (
 	"context"
 	"github.com/sho0pi/gocat/internal/logreader"
+	"github.com/sho0pi/gocat/internal/types"
 	"strings"
 )
 
@@ -11,17 +12,23 @@ type LogFilter struct {
 	inputChan    <-chan *logreader.LogEntry
 	outputChan   chan<- *logreader.LogEntry
 	tags         []string
-	logLevels    []string
+	minLevel     types.LogLevel
 	processNames []string
 }
 
 // NewLogFilter creates a new LogFilter with the specified filters
-func NewLogFilter(inputChan <-chan *logreader.LogEntry, outputChan chan<- *logreader.LogEntry, tags []string, logLevels []string, processNames []string) *LogFilter {
+func NewLogFilter(
+	inputChan <-chan *logreader.LogEntry,
+	outputChan chan<- *logreader.LogEntry,
+	tags []string,
+	minLevel types.LogLevel,
+	processNames []string,
+) *LogFilter {
 	return &LogFilter{
 		inputChan:    inputChan,
 		outputChan:   outputChan,
 		tags:         normalizeTags(tags),
-		logLevels:    normalizeLogLevels(logLevels),
+		minLevel:     minLevel,
 		processNames: normalizeProcessNames(processNames),
 	}
 }
@@ -59,7 +66,7 @@ func (lf *LogFilter) shouldInclude(entry *logreader.LogEntry) bool {
 	}
 
 	// If no filters are set, include all entries
-	if len(lf.tags) == 0 && len(lf.logLevels) == 0 && len(lf.processNames) == 0 {
+	if len(lf.tags) == 0 && len(lf.processNames) == 0 {
 		return true
 	}
 
@@ -78,17 +85,17 @@ func (lf *LogFilter) shouldInclude(entry *logreader.LogEntry) bool {
 	}
 
 	// Check log level filter
-	if len(lf.logLevels) > 0 {
-		levelMatched := false
-		for _, level := range lf.logLevels {
-			if string(entry.LogLevel) == level {
-				levelMatched = true
-				break
-			}
-		}
-		if !levelMatched {
-			return false
-		}
+	if lf.minLevel != types.LevelVerbose {
+
+		//levelMatched := false
+		//	if (entry.LogLevel) == level {
+		//		levelMatched = true
+		//		break
+		//	}
+		//}
+		//if !levelMatched {
+		//	return false
+		//}
 	}
 
 	// Check process name filter

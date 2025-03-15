@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/gookit/color"
 )
 
@@ -48,4 +49,18 @@ func (logLevel LogLevel) String() string {
 
 func (logLevel LogLevel) Sprint(a ...any) string {
 	return logLevelColors[logLevel].Sprint(a...)
+}
+
+func (logLevel *LogLevel) Set(s string) error {
+	switch s {
+	case string(LevelVerbose), string(LevelDebug), string(LevelInfo), string(LevelWarning), string(LevelError):
+		*logLevel = LogLevel(s)
+	default:
+		return fmt.Errorf("invalid log level: %s", s)
+	}
+	return nil
+}
+
+func (logLevel *LogLevel) Type() string {
+	return "LogLevel"
 }

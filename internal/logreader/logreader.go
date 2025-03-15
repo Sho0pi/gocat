@@ -76,28 +76,27 @@ func (lr *LogReader) Start(ctx context.Context) {
 			// Try to parse the line as a log entry
 			entry, err := lr.parseLine(line)
 			if err != nil {
-				// If we have a current entry and this line is a continuation (stack trace)
-				if currentEntry != nil && strings.HasPrefix(line, "\t") {
-					stackEntry := &LogEntry{
-						Timestamp:   currentEntry.Timestamp,
-						ProcessID:   currentEntry.ProcessID,
-						ThreadID:    currentEntry.ThreadID,
-						LogLevel:    currentEntry.LogLevel,
-						Tag:         currentEntry.Tag,
-						Message:     line,
-						ProcessName: currentEntry.ProcessName,
-						IsStackLine: true,
-					}
-					lr.logCh <- stackEntry
-				} else {
-					lr.errCh <- err
-				}
+				lr.errCh <- err
 				continue
 			}
 
-			// We successfully parsed a new log entry
-			currentEntry = entry
-			lr.logCh <- entry
+			// If we have a current entry and this line is a continuation (stack trace)
+			if currentEntry != nil && strings.HasPrefix(entry.Message, "\t") {
+				stackEntry := &LogEntry{
+					Timestamp:   currentEntry.Timestamp,
+					ProcessID:   currentEntry.ProcessID,
+					ThreadID:    currentEntry.ThreadID,
+					LogLevel:    currentEntry.LogLevel,
+					Tag:         currentEntry.Tag,
+					Message:     strings.TrimSpace(entry.Message),
+					ProcessName: currentEntry.ProcessName,
+					IsStackLine: true,
+				}
+				lr.logCh <- stackEntry
+			} else {
+				currentEntry = entry
+				lr.logCh <- entry
+			}
 		}
 	}
 
@@ -107,11 +106,13 @@ func (lr *LogReader) Start(ctx context.Context) {
 }
 
 // Regular expression for parsing a logcat line
-var logEntryRegex = regexp.MustCompile(`^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+([^:]+):\s+(.*)$`)
+//var logEntryRegex = regexp.MustCompile(`^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+([^:]+):\s+(.*)$`)
+
+var re = regexp.MustCompile(`(?P<Timestamp>\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3})\s+(?P<PID>\d+)\s+(?P<TID>\d+)\s+(?P<Level>[VDIWEF])\s+(?P<Tag>\S+)\s*:\s(?P<Message>.*)$`)
 
 // parseLine attempts to parse a line from logcat into a LogEntry
 func (lr *LogReader) parseLine(line string) (*LogEntry, error) {
-	matches := logEntryRegex.FindStringSubmatch(line)
+	matches := re.FindStringSubmatch(line)
 	if matches == nil {
 		return nil, &ParseError{Line: line}
 	}
