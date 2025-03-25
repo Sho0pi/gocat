@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/sho0pi/gocat/cmd/version"
+	"github.com/sho0pi/gocat/internal/completion"
 	"github.com/sho0pi/gocat/internal/filter"
 	"github.com/sho0pi/gocat/internal/logreader"
 	"github.com/sho0pi/gocat/internal/printer"
@@ -32,7 +33,7 @@ type gocatOptions struct {
 
 func newGocatCommand() *cobra.Command {
 	opts := &gocatOptions{
-		minLevel: types.LevelVerbose,
+		minLevel: types.VerboseLevel,
 	}
 	cmd := &cobra.Command{
 		Use:   "gocat",
@@ -97,11 +98,16 @@ It can parse logs either from an input file or directly from adb logcat.`,
 	cmd.SetVersionTemplate("GoCat version {{.Version}}\n")
 
 	cmd.Flags().VarP(&opts.minLevel, "min-level", "l", "Minimum level to be displayed")
-	cmd.Flags().BoolVar(&opts.showTime, "show-time", false, "Show times")
+	_ = cmd.RegisterFlagCompletionFunc("min-level", completion.LogLevels())
+
+	//cmd.Flags().BoolVar(&opts.showTime, "show-time", false, "Show times")
 	cmd.Flags().BoolVarP(&opts.dump, "dump", "d", false, "Dump the log and then exit (don't block).")
 	cmd.Flags().BoolVarP(&opts.clear, "clear", "c", false, "Clear the entire log before running")
 	cmd.Flags().StringSliceVarP(&opts.tags, "tags", "t", []string{}, "Filter output by specified tag(s)")
 	cmd.Flags().StringSliceVarP(&opts.ignoreTags, "ignore-tags", "i", []string{}, "Filter output by ignoring specified tag(s)")
+
+	cmd.Flags().StringSliceVar(&opts.processNames, "process-names", []string{}, "Filter output by process names")
+	_ = cmd.RegisterFlagCompletionFunc("process-names", completion.RunningProcesses())
 
 	return cmd
 }

@@ -140,7 +140,7 @@ func (lr *LogReader) parseLine(line string) (*LogEntry, error) {
 		Timestamp:   timestamp,
 		ProcessID:   pid,
 		ThreadID:    tid,
-		LogLevel:    types.LogLevel(matches[4]),
+		LogLevel:    types.ToLogLevel(matches[4]),
 		Tag:         strings.TrimSpace(matches[5]),
 		Message:     matches[6],
 		ProcessName: "", // We don't have process name in the log format, only PID

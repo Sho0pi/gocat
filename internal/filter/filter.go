@@ -85,7 +85,7 @@ func (lf *LogFilter) shouldInclude(entry *logreader.LogEntry) bool {
 	}
 
 	// Check log level filter
-	if lf.minLevel != types.LevelVerbose {
+	if lf.minLevel.Repr != "he" {
 
 		//levelMatched := false
 		//	if (entry.LogLevel) == level {
