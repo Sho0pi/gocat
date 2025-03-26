@@ -2,7 +2,7 @@
 
 > A Colorful and Powerful ADB Logcat Wrapper in Go
 
-![Gocat Demo Screenshot](assets/gocat-demo.png)
+![Gocat Demo Screenshot](assets/screenshot1.png)
 
 ## 🚀 What is Gocat?
 
