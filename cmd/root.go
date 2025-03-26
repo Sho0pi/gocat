@@ -104,7 +104,7 @@ It can parse logs either from an input file or directly from adb logcat.`,
 	}
 
 	cmd.Flags().BoolP("version", "v", false, "Print version information and quit")
-	cmd.SetVersionTemplate("GoCat version {{.Version}}\n")
+	cmd.SetVersionTemplate("Gocat version {{.Version}}\n")
 
 	cmd.Flags().BoolVarP(&opts.dump, "dump", "d", false, "Dump the log and then exit (don't block).")
 	cmd.Flags().BoolVarP(&opts.clear, "clear", "c", false, "Clear the entire log before running")

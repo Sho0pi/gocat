@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: gocat
+
+release:
+  name_template: "Gocat {{ .Version }}"
+
+before:
+  hooks:
+    - go mod tidy
+    - ./scripts/generate-completions.sh
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+        -X 'github.com/sho0pi/gocat/cmd.version.Version={{ .Version }}'
+
+archives:
+  - formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - completions/*
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+
+brews:
+  - name: gocat
+    repository:
+      owner: sho0pi
+      name: homebrew-tap
+    homepage: https://github.com/sho0pi/gocat
+    description: A simple CLI for managing your tasks.
+    commit_author:
+      name: "sho0pi"
+    install: |
+      bin.install "gocat"
+      bash_completion.install "completions/gocat.bash" => "gocat"
+      zsh_completion.install "completions/gocat.zsh" => "_gocat"
+      fish_completion.install "completions/gocat.fish" => "gocat.fish"
+    test: |
+      system "#{bin}/gocat --version"
+
+
+scoops:
+  - name: gocat
+    repository:
+      owner: sho0pi
+      name: scoop-bucket
+    homepage: https://github.com/sho0pi/gocat
+    description: A simple CLI for managing your tasks.
