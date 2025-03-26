@@ -40,7 +40,8 @@ func newGocatCommand() *cobra.Command {
 		Short: "A beautiful logcat wrapper for Android",
 		Long: `Gocat is a CLI tool that wraps adb logcat with filtering and colorful output.
 It can parse logs either from an input file or directly from adb logcat.`,
-		Version: version.Version,
+		Version:           version.Version,
+		ValidArgsFunction: noArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -90,7 +91,7 @@ It can parse logs either from an input file or directly from adb logcat.`,
 			logReader := logreader.NewLogReader(reader, logCh, metaCh, errCh)
 			go logReader.Start(ctx)
 
-			logFilter := filter.NewLogFilter(logCh, filteredCh, opts.tags, opts.minLevel, opts.processNames)
+			logFilter := filter.NewLogFilter(logCh, filteredCh, opts.tags, opts.ignoreTags, opts.minLevel, opts.processNames)
 			go logFilter.Start(ctx)
 
 			// Create and start the Printer
@@ -114,9 +115,14 @@ It can parse logs either from an input file or directly from adb logcat.`,
 	cmd.Flags().VarP(&opts.minLevel, "min-level", "l", "Minimum level to be displayed")
 	_ = cmd.RegisterFlagCompletionFunc("min-level", completion.LogLevels())
 	cmd.Flags().StringSliceVar(&opts.processNames, "process-name", []string{}, "Filter output by process name(s)")
+	_ = cmd.Flags().MarkHidden("process-name")
 	_ = cmd.RegisterFlagCompletionFunc("process-name", completion.RunningProcesses())
 
 	return cmd
+}
+
+func noArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
 func Execute() {

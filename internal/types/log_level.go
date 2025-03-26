@@ -27,36 +27,42 @@ const (
 
 var logLevels = map[string]LogLevel{
 	"v": LogLevel{
+		ID:         0,
 		Name:       "verbose",
 		LevelColor: color.Hex(whiteColor, false),
 		LevelStyle: color.HEXStyle(whiteColor, blackColor),
 		Repr:       "V",
 	},
 	"d": LogLevel{
+		ID:         1,
 		Name:       "debug",
 		LevelColor: color.Hex(blueColor),
 		LevelStyle: color.HEXStyle(whiteColor, blueColor),
 		Repr:       "D",
 	},
 	"i": LogLevel{
+		ID:         2,
 		Name:       "info",
 		LevelColor: color.Hex(greenColor),
 		LevelStyle: color.HEXStyle(blackColor, greenColor),
 		Repr:       "I",
 	},
 	"w": LogLevel{
+		ID:         3,
 		Name:       "warning",
 		LevelColor: color.Hex(yellowColor),
 		LevelStyle: color.HEXStyle(blackColor, yellowColor),
 		Repr:       "W",
 	},
 	"e": LogLevel{
+		ID:         4,
 		Name:       "error",
 		LevelColor: color.Hex(redColor),
 		LevelStyle: color.HEXStyle(whiteColor, redColor),
 		Repr:       "E",
 	},
 	"f": LogLevel{
+		ID:         5,
 		Name:       "fatal",
 		LevelColor: color.Hex(darkRedColor, false),
 		LevelStyle: color.HEXStyle(darkRedColor, blackColor),
