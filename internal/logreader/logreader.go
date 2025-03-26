@@ -23,6 +23,13 @@ type LogEntry struct {
 	IsStackLine bool
 }
 
+func (e *LogEntry) SprintMessage() string {
+	if e.LogLevel.Repr == "F" || e.LogLevel.Repr == "E" {
+		return e.LogLevel.Sprint(e.Message)
+	}
+	return e.Message
+}
+
 // LogReader parses adb logcat output into structured LogEntry objects
 type LogReader struct {
 	reader io.ReadCloser

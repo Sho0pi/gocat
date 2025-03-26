@@ -84,6 +84,10 @@ func (logLevel *LogLevel) Color() color.RGBColor {
 }
 
 func (logLevel *LogLevel) String() string {
+	return logLevel.Name
+}
+
+func (logLevel *LogLevel) Pretty() string {
 	return logLevel.LevelStyle.SetOpts(color.Opts{
 		color.OpItalic, color.OpBold,
 	}).Sprintf(" %s ", logLevel.Repr)
@@ -104,5 +108,5 @@ func (logLevel *LogLevel) Set(s string) error {
 }
 
 func (logLevel *LogLevel) Type() string {
-	return "LogLevel"
+	return "Level"
 }

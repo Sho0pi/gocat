@@ -24,8 +24,8 @@ const (
 type gocatOptions struct {
 	tags         []string
 	ignoreTags   []string
-	minLevel     types.LogLevel
 	processNames []string
+	minLevel     types.LogLevel
 	showTime     bool
 	dump         bool
 	clear        bool
@@ -56,7 +56,16 @@ It can parse logs either from an input file or directly from adb logcat.`,
 			if info.Mode()&os.ModeCharDevice == 0 {
 				reader = os.Stdin
 			} else {
-				adbCmd := exec.CommandContext(ctx, "adb", "logcat")
+				if opts.clear {
+					if err := exec.CommandContext(ctx, "adb", "logcat", "-c").Run(); err != nil {
+						return fmt.Errorf("clearing logcat: %w", err)
+					}
+				}
+				adbArgs := []string{"logcat"}
+				if opts.dump {
+					adbArgs = append(adbArgs, "-d")
+				}
+				adbCmd := exec.CommandContext(ctx, "adb", adbArgs...)
 				reader, err = adbCmd.StdoutPipe()
 				if err != nil {
 					return fmt.Errorf("adbCmd.StdoutPipe() failed: %w", err)
@@ -97,17 +106,15 @@ It can parse logs either from an input file or directly from adb logcat.`,
 	cmd.Flags().BoolP("version", "v", false, "Print version information and quit")
 	cmd.SetVersionTemplate("GoCat version {{.Version}}\n")
 
-	cmd.Flags().VarP(&opts.minLevel, "min-level", "l", "Minimum level to be displayed")
-	_ = cmd.RegisterFlagCompletionFunc("min-level", completion.LogLevels())
-
-	//cmd.Flags().BoolVar(&opts.showTime, "show-time", false, "Show times")
 	cmd.Flags().BoolVarP(&opts.dump, "dump", "d", false, "Dump the log and then exit (don't block).")
 	cmd.Flags().BoolVarP(&opts.clear, "clear", "c", false, "Clear the entire log before running")
+
 	cmd.Flags().StringSliceVarP(&opts.tags, "tags", "t", []string{}, "Filter output by specified tag(s)")
 	cmd.Flags().StringSliceVarP(&opts.ignoreTags, "ignore-tags", "i", []string{}, "Filter output by ignoring specified tag(s)")
-
-	cmd.Flags().StringSliceVar(&opts.processNames, "process-names", []string{}, "Filter output by process names")
-	_ = cmd.RegisterFlagCompletionFunc("process-names", completion.RunningProcesses())
+	cmd.Flags().VarP(&opts.minLevel, "min-level", "l", "Minimum level to be displayed")
+	_ = cmd.RegisterFlagCompletionFunc("min-level", completion.LogLevels())
+	cmd.Flags().StringSliceVar(&opts.processNames, "process-name", []string{}, "Filter output by process name(s)")
+	_ = cmd.RegisterFlagCompletionFunc("process-name", completion.RunningProcesses())
 
 	return cmd
 }

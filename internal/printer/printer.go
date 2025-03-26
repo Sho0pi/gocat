@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/sho0pi/gocat/internal/logreader"
 	"io"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -13,6 +12,7 @@ import (
 )
 
 const maxTagLength = 25
+const stacktracePrefixLength = maxTagLength + 5
 
 var tagColors = []*color.RGBStyle{
 	color.HEXStyle("#FFFFFF"),
@@ -56,11 +56,6 @@ func NewPrinter(
 	}
 }
 
-func trueLen(coloredString string) int {
-	re := regexp.MustCompile(`\x1b\[[0-9;]*[mK]`)
-	return len(re.ReplaceAllString(coloredString, ""))
-}
-
 // Start begins printing log entries from the channels until the context is cancelled
 func (p *Printer) Start(ctx context.Context) error {
 	for {
@@ -86,7 +81,10 @@ func (p *Printer) Start(ctx context.Context) error {
 	}
 }
 
-func getTag(tag string, maxLength int) string {
+func (p *Printer) sprintTag(tag string, maxLength int) string {
+	if p.previousEntry != nil && p.previousEntry.Tag == tag {
+		return strings.Repeat(" ", maxLength)
+	}
 	chosenColor := tagColors[len(tag)%len(tagColors)]
 	if len(tag) > maxLength {
 		tag = tag[:maxLength-1] + "…"
@@ -102,51 +100,29 @@ func (p *Printer) printLogEntry(entry *logreader.LogEntry) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	tag := getTag(entry.Tag, maxTagLength)
-	if p.previousEntry != nil {
-		if p.previousEntry.Tag == entry.Tag {
-			tag = strings.Repeat(" ", maxTagLength)
-		}
-	}
-
-	entryMsg := fmt.Sprintf(" %s %s", tag, entry.LogLevel.String())
-
 	if entry.IsStackLine {
 		// Stack trace lines are indented and use the same color as their parent entry
-		fmt.Fprint(p.out, strings.Repeat(" ", trueLen(entryMsg)+1))
-		fmt.Fprint(p.out, "    ")
-		fmt.Fprintln(p.out, entry.LogLevel.Sprint(entry.Message))
+		fmt.Printf(
+			"%s %s\n",
+			strings.Repeat(" ", stacktracePrefixLength),
+			entry.LogLevel.Sprint(entry.Message),
+		)
 		return
 	}
 
-	message := entry.Message
-	if entry.LogLevel.Repr == "F" || entry.LogLevel.Repr == "E" {
-		//message = entry.LogLevel.LevelStyle.Sprint(entry.Message)
-		message = entry.LogLevel.Sprint(entry.Message)
-	}
+	logPrefix := fmt.Sprintf(
+		"%s %s",
+		p.sprintTag(entry.Tag, maxTagLength),
+		entry.LogLevel.Pretty(),
+	)
+	message := entry.SprintMessage()
 
 	fmt.Fprintf(
 		p.out,
 		"%s %s\n",
-		entryMsg,
+		logPrefix,
 		message,
 	)
-
-	//// Print the log level with its specific color
-	//fmt.Fprint(p.out, entry.LogLevel.String())
-	//
-	//// Format: TIME PID-TID/TAG LEVEL: MESSAGE
-	//timestamp := entry.Timestamp.Format("15:04:05.000")
-	//
-	//// First print the prefix with default color
-	//fmt.Fprintf(p.out, "%s %d-%d/", timestamp, entry.ProcessID, entry.ThreadID)
-	//
-	//// Print the tag with a special color
-	//tagColor := color.New(color.FgHiBlue)
-	//tagColor.Fprintf(p.out, "%s ", entry.Tag)
-	//
-	//// Finally print the message with the same color as the log level
-	//fmt.Fprintln(p.out, entry.LogLevel.Sprint(entry.Message))
 
 	p.previousEntry = entry
 }
