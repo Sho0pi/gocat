@@ -1,5 +1,10 @@
 # 🐱 Gocat
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/sho0pi/gocat)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sho0pi/gocat)
+![GitHub License](https://img.shields.io/github/license/sho0pi/gocat)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sho0pi/gocat)](https://goreportcard.com/report/github.com/sho0pi/gocat)
+
 > A Colorful and Powerful ADB Logcat Wrapper in Go
 
 ![Gocat Demo Screenshot](assets/screenshot1.png)
@@ -13,9 +18,9 @@ Gocat is a feature-rich CLI tool that supercharges Android's `adb logcat` with p
 - 🌈 Colorful, easy-to-read log output
 - 🔍 Advanced log filtering by tags and log levels
 - 📂 Supports reading logs from multiple sources:
-    - Direct ADB logcat
-    - Stored log files
-    - Piped input
+  - Direct ADB logcat
+  - Stored log files
+  - Piped input
 - 🚀 Efficient goroutine-based log processing
 - 🎛️ Flexible command-line options
 
@@ -24,6 +29,8 @@ Gocat is a feature-rich CLI tool that supercharges Android's `adb logcat` with p
 ```bash
 brew install sho0pi/tap/gocat
 ```
+
+You can also download prebuilt binaries from the [GitHub releases page](https://github.com/Sho0pi/gocat/releases).
 
 ## 💻 Usage Examples
 
@@ -69,4 +76,12 @@ Interested in contributing? Check out our [CONTRIBUTING.md](CONTRIBUTING.md) for
 
 ## 🌟 Acknowledgements
 
-Inspired by `logcat-color` and `pidcat`. Built with ❤️ and Go.
+Gocat is inspired by and builds upon the excellent work of:
+- [`logcat-color`](https://github.com/marshall/logcat-color)
+- [`pidcat`](https://github.com/JakeWharton/pidcat)
+
+Built with ❤️ and Go.
+
+## 📜 License
+
+Please refer to the [LICENSE](LICENSE) file for detailed licensing information.
