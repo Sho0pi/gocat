@@ -65,6 +65,7 @@ Flags:
 ## 🗺️ Roadmap & Milestones
 
 ### Planned Features
+- [x] Filter out specific tags
 - [ ] Multi-device log support
 - [ ] Interactive log filtering with `fzf`
 - [ ] Process name filtering improvements
