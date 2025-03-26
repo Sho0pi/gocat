@@ -76,12 +76,5 @@ Interested in contributing? Check out our [CONTRIBUTING.md](CONTRIBUTING.md) for
 
 ## 🌟 Acknowledgements
 
-Gocat is inspired by and builds upon the excellent work of:
-- [`logcat-color`](https://github.com/marshall/logcat-color)
-- [`pidcat`](https://github.com/JakeWharton/pidcat)
-
+Gocat was inspired by [`logcat-color`](https://github.com/marshall/logcat-color) and [`pidcat`](https://github.com/JakeWharton/pidcat).  
 Built with ❤️ and Go.
-
-## 📜 License
-
-Please refer to the [LICENSE](LICENSE) file for detailed licensing information.
