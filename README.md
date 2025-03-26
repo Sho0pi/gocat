@@ -1,4 +1,4 @@
-# 🐱 Gocat
+# 🐈 Gocat
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/sho0pi/gocat)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sho0pi/gocat)
