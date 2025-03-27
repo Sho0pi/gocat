@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	logChanSize     = 1000
+	logChanSize     = 10000
 	regularChanSize = 10
 )
 
@@ -25,6 +25,7 @@ type gocatOptions struct {
 	tags         []string
 	ignoreTags   []string
 	processNames []string
+	deviceIDs    []string
 	minLevel     types.LogLevel
 	showTime     bool
 	dump         bool
@@ -57,24 +58,30 @@ direct ADB logcat, log files, and piped input.`,
   cat logfile.log | gocat`,
 
 		Version:           version.Version,
-		ValidArgsFunction: noArgs,
+		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			reader, err := getLogReader(ctx, opts)
+			readers, err := getLogReader(ctx, opts)
 			if err != nil {
 				return fmt.Errorf("failed to get log reader: %w", err)
 			}
-			defer reader.Close()
+			defer func() {
+				for i := range readers {
+					readers[i].Close()
+				}
+			}()
 
 			logCh := make(chan *logreader.LogEntry, logChanSize)
 			filteredCh := make(chan *logreader.LogEntry, logChanSize)
 			metaCh := make(chan string, regularChanSize)
 			errCh := make(chan error, regularChanSize)
 
-			logReader := logreader.NewLogReader(reader, logCh, metaCh, errCh)
-			go logReader.Start(ctx)
+			for _, reader := range readers {
+				logReader := logreader.NewLogReader(reader, logCh, metaCh, errCh)
+				go logReader.Start(ctx)
+			}
 
 			logFilter := filter.NewLogFilter(logCh, filteredCh, opts.tags, opts.ignoreTags, opts.minLevel, opts.processNames)
 			go logFilter.Start(ctx)
@@ -94,6 +101,8 @@ direct ADB logcat, log files, and piped input.`,
 
 	cmd.Flags().BoolVarP(&opts.dump, "dump", "d", false, "Capture and display logs, then exit without blocking")
 	cmd.Flags().BoolVarP(&opts.clear, "clear", "c", false, "Clear existing Android device logs before capturing")
+	cmd.Flags().StringSliceVarP(&opts.deviceIDs, "serial", "s", []string{}, "Use device with given serial (overrides $ANDROID_SERIAL)")
+	_ = cmd.RegisterFlagCompletionFunc("serial", completion.AdbDevices())
 
 	cmd.Flags().StringSliceVarP(&opts.tags, "tags", "t", []string{}, "Filter output by specified tag(s)")
 	cmd.Flags().StringSliceVarP(&opts.ignoreTags, "ignore-tags", "i", []string{}, "Exclude logs with specified tag(s)")
@@ -106,49 +115,55 @@ direct ADB logcat, log files, and piped input.`,
 	return cmd
 }
 
-func getLogReader(ctx context.Context, opts *gocatOptions) (io.ReadCloser, error) {
+func getLogReader(ctx context.Context, opts *gocatOptions) ([]io.ReadCloser, error) {
 	info, err := os.Stdin.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("could not check stdin: %w", err)
 	}
 	if info.Mode()&os.ModeCharDevice == 0 {
-		return os.Stdin, nil
+		return []io.ReadCloser{os.Stdin}, nil
 	}
 
-	if opts.clear {
-		if err := exec.CommandContext(ctx, "adb", "logcat", "-c").Run(); err != nil {
-			return nil, fmt.Errorf("failed to clear logcat: %w", err)
+	if len(opts.deviceIDs) == 0 {
+		opts.deviceIDs = append(opts.deviceIDs, "")
+	}
+
+	var readers []io.ReadCloser
+
+	for _, deviceID := range opts.deviceIDs {
+		if opts.clear {
+			if err := exec.CommandContext(ctx, "adb", "-s", deviceID, "logcat", "-c").Run(); err != nil {
+				return nil, fmt.Errorf("failed to clear logcat: %w", err)
+			}
 		}
-	}
 
-	adbArgs := []string{"logcat"}
-	if opts.dump {
-		adbArgs = append(adbArgs, "-d")
-	}
-
-	adbCmd := exec.CommandContext(ctx, "adb", adbArgs...)
-	reader, err := adbCmd.StdoutPipe()
-	if err != nil {
-		return nil, fmt.Errorf("could not get adb stdout pipe: %w", err)
-	}
-
-	if err := adbCmd.Start(); err != nil {
-		return nil, fmt.Errorf("could not start adb: %w", err)
-	}
-
-	// Ensure adb process is killed when we're done
-	go func() {
-		<-ctx.Done()
-		if adbCmd.Process != nil {
-			adbCmd.Process.Kill()
+		adbArgs := []string{"-s", deviceID, "logcat"}
+		if opts.dump {
+			adbArgs = append(adbArgs, "-d")
 		}
-	}()
 
-	return reader, nil
-}
+		adbCmd := exec.CommandContext(ctx, "adb", adbArgs...)
+		reader, err := adbCmd.StdoutPipe()
+		if err != nil {
+			return nil, fmt.Errorf("could not get adb stdout pipe: %w", err)
+		}
 
-func noArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return nil, cobra.ShellCompDirectiveNoFileComp
+		if err := adbCmd.Start(); err != nil {
+			return nil, fmt.Errorf("could not start adb: %w", err)
+		}
+
+		// Ensure adb process is killed when we're done
+		go func() {
+			<-ctx.Done()
+			if adbCmd.Process != nil {
+				adbCmd.Process.Kill()
+			}
+		}()
+
+		readers = append(readers, reader)
+	}
+
+	return readers, nil
 }
 
 func Execute() {
