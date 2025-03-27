@@ -66,7 +66,7 @@ Flags:
 
 ### Planned Features
 - [x] Filter out specific tags
-- [ ] Multi-device log support
+- [x] Multi-device log support
 - [ ] Interactive log filtering with `fzf`
 - [ ] Process name filtering improvements
 - [ ] Configurable output via config file
